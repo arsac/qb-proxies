@@ -1,0 +1,20 @@
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /qb-proxies .
+
+FROM alpine:3.19
+
+RUN apk --no-cache add ca-certificates
+
+COPY --from=builder /qb-proxies /qb-proxies
+
+EXPOSE 8080
+
+ENTRYPOINT ["/qb-proxies"]
+CMD ["-config", "/config/config.yaml", "-addr", ":8080"]

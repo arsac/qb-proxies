@@ -1,0 +1,53 @@
+# Example configuration for qb-proxies
+# Each feed defines an endpoint that proxies and transforms an upstream RSS feed
+
+feeds:
+  # Academic Torrents -> qBittorrent compatible format
+  # Converts infohash to magnet link and adds proper enclosure
+  - name: academic-torrents
+    path: /academic
+    upstream: https://academictorrents.com/rss.xml
+    transformations:
+      # Build magnet link from infohash
+      - field: enclosure.url
+        expression: '"magnet:?xt=urn:btih:" + infohash'
+
+      # Use the size field for enclosure length
+      - field: enclosure.length
+        expression: 'size'
+
+      # Set proper MIME type for torrents
+      - field: enclosure.type
+        expression: '"application/x-bittorrent"'
+
+  # Example: Fix missing enclosure URLs by using the link field
+  - name: example-feed
+    path: /example
+    upstream: https://example.com/rss
+    transformations:
+      # Use CEL expressions to transform fields
+      # Available variables: title, link, description, guid, pubDate,
+      #                      enclosureUrl, enclosureLength, enclosureType
+      #                      infohash, size, category (for non-standard feeds)
+      # Also available: item.title, item.link, etc. for map-style access
+
+      # Copy link to enclosure URL if enclosure is missing
+      - field: enclosure.url
+        expression: 'enclosureUrl != "" ? enclosureUrl : link'
+
+      # Set default enclosure type
+      - field: enclosure.type
+        expression: 'enclosureType != "" ? enclosureType : "application/x-bittorrent"'
+
+  # Example: String manipulation
+  - name: string-ops
+    path: /strings
+    upstream: https://example.com/rss
+    transformations:
+      # Prefix titles
+      - field: title
+        expression: '"[PROXY] " + title'
+
+      # Remove tracking parameters from URLs
+      - field: link
+        expression: 'link.split("?")[0]'
